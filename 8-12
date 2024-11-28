@@ -1,0 +1,227 @@
+week-8
+
+import pandas as pd
+from collections import Counter
+import math
+from pprint import pprint
+
+def entropy(probs):
+    return sum(-prob * math.log(prob, 2) for prob in probs if prob > 0)
+
+def entropy_of_list(a_list):
+    cnt = Counter(a_list)
+    num_instances = len(a_list)
+    probs = [x / num_instances for x in cnt.values()]
+    return entropy(probs)
+
+def information_gain(df, split_attribute_name, target_attribute_name):
+    df_split = df.groupby(split_attribute_name)
+    nobs = len(df.index) * 1.0
+    df_agg_ent = df_split[target_attribute_name].agg([entropy_of_list, lambda x: len(x) / nobs])
+    df_agg_ent.columns = ['entropy', 'prob']
+    avg_info = sum(df_agg_ent['entropy'] * df_agg_ent['prob'])
+    
+    
+    old_entropy = entropy_of_list(df[target_attribute_name])
+    return old_entropy - avg_info
+
+def id3DT(df, target_attribute_name, attribute_names, default_class=None):  # PlayTennis
+    cnt = Counter(df[target_attribute_name])  # yes:9, no:5
+    if len(cnt) == 1:
+        return next(iter(cnt))
+    elif df.empty or not attribute_names:
+        return default_class
+    else:
+        default_class = max(cnt, key=cnt.get)  # yes
+        gain = [information_gain(df, attr, target_attribute_name) for attr in attribute_names]
+        index_of_max = gain.index(max(gain))  # 0.2464
+        best_attr = attribute_names[index_of_max]  # outlook
+        tree = {best_attr: {}}
+        remaining_attributes = [i for i in attribute_names if i != best_attr]
+        
+        for attr_val, data_subset in df.groupby(best_attr):
+            subtree = id3DT(data_subset, target_attribute_name, remaining_attributes, default_class)
+            tree[best_attr][attr_val] = subtree
+            
+        return tree
+
+def classify(instance, tree, default=None):
+    attribute = next(iter(tree))
+    if instance[attribute] in tree[attribute]:
+        result = tree[attribute][instance[attribute]]
+        if isinstance(result, dict):
+            return classify(instance, result)
+        else:
+            return result
+    else:
+        return default
+
+data = {
+    'Outlook': ['Sunny', 'Sunny', 'Overcast', 'Rain', 'Rain', 'Rain', 'Overcast', 'Sunny', 'Sunny', 'Rain', 'Sunny', 'Overcast', 'Overcast', 'Rain'],
+    'Temperature': ['Hot', 'Hot', 'Hot', 'Mild', 'Cool', 'Cool', 'Cool', 'Mild', 'Cool', 'Mild', 'Mild', 'Mild', 'Hot', 'Mild'],
+    'Humidity': ['High', 'High', 'High', 'High', 'Normal', 'Normal', 'Normal', 'High', 'Normal', 'Normal', 'Normal', 'High', 'Normal', 'High'],
+    'Wind': ['Weak', 'Strong', 'Weak', 'Weak', 'Weak', 'Strong', 'Strong', 'Weak', 'Weak', 'Weak', 'Strong', 'Strong', 'Weak', 'Strong'],
+    'PlayTennis': ['No', 'No', 'Yes', 'Yes', 'Yes', 'No', 'Yes', 'No', 'Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'No']
+}
+df = pd.DataFrame(data)
+
+attribute_names = list(df.columns)
+attribute_names.remove('PlayTennis')
+
+tree = id3DT(df, 'PlayTennis', attribute_names)
+print("The Resultant Decision Tree is:")
+pprint(tree)
+
+new_data = {
+    'Outlook': ['Rain', 'Sunny'],
+    'Temperature': ['Mild', 'Hot'],
+    'Humidity': ['High', 'Normal'],
+    'Wind': ['Weak', 'Strong']
+}
+df2 = pd.DataFrame(new_data)
+
+df2['Predicted'] = df2.apply(classify, axis=1, args=(tree, 'No'))
+print(df2)
+
+=========================================================================
+week-9
+
+ import matplotlib.pyplot as plt
+ from sklearn import datasets
+ from sklearn.cluster import KMeans
+ import sklearn.metrics as sm
+ import pandas as pd
+ import numpy as np
+
+ iris =datasets.load_iris()
+ X=pd.DataFrame(iris.data)
+ X.columns=['Sepal_Length','Sepal_Width','Petal_Length','Petal_Width']
+ y=pd.DataFrame(iris.target)
+ y.columns=['target']
+ plt.figure(figsize=(14,7))
+ colormap=np.array(['red','lime','black'])
+ plt.subplot(1,2,1)
+ plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[y.target],s=40)
+ plt.title('Sepal')
+ plt.subplot(1,2,2)
+ plt.scatter(X.Sepal_Length,X.Sepal_Width,c=colormap[y.target],s=40)
+ plt.title('Petal')
+ model=KMeans(n_clusters=3)
+ model.fit(X)
+ print(model.labels_)
+ plt.subplot(1,2,1)
+ plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[y.target],s=40)
+ plt.title('Real Classification')
+ plt.subplot(1,2,2)
+ plt.scatter(X.Petal_Length,X.Petal_Width,c=colormap[model.labels_],s=40)
+ plt.title('K Mean Classification')
+
+======================================================================================
+week-10
+
+ import pandas as pd
+ from sklearn.datasets import load_iris
+ from sklearn.model_selection import train_test_split
+ from sklearn.neighbors import KNeighborsClassifier
+ from sklearn.metrics import confusion_matrix, accuracy_score
+ iris= load_iris()
+ print("Dataset keys:",iris.keys())
+ df = pd.DataFrame(iris['data'], columns=iris['feature_names'])
+ print("Feature Data\n",df.head())
+ print("Target names:", iris['target_names'])
+ print("Feature names:",iris['feature_names'])
+ print("Target array:\n", iris['target'])
+ X=df
+ y=iris['target']
+ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+ knn= KNeighborsClassifier(n_neighbors=3)
+ knn.fit(X_train,y_train)
+ print("length",len(X_test))
+ y_pred=knn.predict(X_test)
+ cm_test = confusion_matrix(y_test,y_pred)
+ print("Confusion Matrix (Test Data):\n",cm_test)
+ accuracy_test= accuracy_score(y_test,y_pred)
+ print("Correct prediction on test data:", accuracy_test)
+ print("length",len(X_train))
+ y_train_pred=knn.predict(X_train)
+ cm_train=confusion_matrix(y_train,y_train_pred)
+ print("Confusion Matrix (Training Data):\n",cm_train)
+
+=====================================================================================
+week-11
+ import numpy as np
+ def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+ def sigmoid_derivative(x):
+    return x * (1 - x)
+ X=np.array([[0,0],[0,1],[1,0],[1,1]])
+ y=np.array([[0],[1],[1],[0]])
+ input_layer_neurons=2
+ hidden_layer_neurons=4
+ output_layer_neurons=1
+ epochs=10000
+ learning_rate=0.1
+ np.random.seed(42)
+ wh=np.random.uniform(size=(input_layer_neurons,hidden_layer_neurons))
+ bh=np.random.uniform(size=(1,hidden_layer_neurons))
+ wout=np.random.uniform(size=(hidden_layer_neurons,output_layer_neurons))
+ bout=np.random.uniform(size=(1,output_layer_neurons))
+ for epoch in range(epochs):
+    hidden_layer_input=np.dot(X,wh)+bh
+    hidden_layer_output = sigmoid(hidden_layer_input)
+    output_layer_input=np.dot(hidden_layer_output,wout)+bout
+    output=sigmoid(output_layer_input)
+    error=y-output
+    hidden_layer_gradient=sigmoid_derivative(output)
+    output_layer_gradient=sigmoid_derivative(hidden_layer_output)
+    d_output=error*hidden_layer_gradient
+    hidden_layer_gradient=sigmoid_derivative(hidden_layer_output)
+    d_hidden_layer=d_output.dot(wout.T)*hidden_layer_gradient
+    wout+=hidden_layer_output.T.dot(d_output)*learning_rate
+    bout+=np.sum(d_output,axis=0,keepdims=True)*learning_rate
+    wh+=X.T.dot(d_hidden_layer)*learning_rate
+    bh+=np.sum(d_hidden_layer,axis=0,keepdims=True)*learning_rate
+ if(epoch %1000 ==0):
+      print(f"Epoch {epoch},Error: {np.mean(np.abs(error))}")
+ print("Final predictions after training:")
+ print(output)
+
+=========================================================================
+week-12
+
+ import numpy as np
+ import matplotlib.pyplot as plt
+ from sklearn.svm import SVC
+ from sklearn.metrics import classification_report, accuracy_score
+ data = np.array([
+    [1.5,2.0,1],
+    [1.0,1.0,1],
+    [2.0,2.5,1],
+    [2.5,1.5,1],
+    [3.0,1.0,0],
+    [3.5,0.5,0],
+    [4.0,1.0,0],
+    [4.5,1.5,0]
+ ])
+ X= data[:,:2]
+ y=data[:,2]
+ svm_model =SVC(kernel='linear')
+ svm_model.fit(X,y)
+ y_pred = svm_model.predict(X)
+ print("Accuracy:", accuracy_score(y, y_pred))
+ print(" \nClassification Report:\n",  classification_report(y, y_pred))
+ x_min, x_max =X[:, 0].min()-1, X[:, 0].max()+1
+ y_min, y_max =X[:, 1].min()-1, X[:, 1].max()+1
+ xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
+ print("xx",xx)
+ print("yy", yy)
+ Z = svm_model.predict(np.c_[xx.ravel(), yy.ravel()])
+ Z = Z.reshape(xx.shape)
+ print("Z=",Z)
+ plt.figure(figsize=(10, 6))
+ plt.contour(xx, yy, Z, alpha=0.2, cmap='coolwarm')
+ plt.scatter(X[:, 0], X[:, 1], c=y, cmap='coolwarm',edgecolors='k',s=100)
+ plt.xlabel("Feature 1 (e.g)., Positivity Score")
+ plt.ylabel("Feature 2 (e.g)., Intensity Score")
+ plt.title('SVM Decision Boundary on 2-Feature Sentiment Data')
+ plt.show()
