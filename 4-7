@@ -1,22 +1,50 @@
 week-4
 
- from sympy import symbols, Or, Not, Implies, satisfiable
- Rain = symbols('Rain')
- Harry_Visited_Hagrid = symbols('Harry_Visited_Hagrid')
- Harry_Visited_Dumbledore = symbols('Harry_Visited_Dumbledore')
- sentence_1 = Implies(Rain, Harry_Visited_Hagrid)
- sentence_2 = (
-    Or(Harry_Visited_Hagrid, Harry_Visited_Dumbledore)
-    & Not(Harry_Visited_Hagrid & Harry_Visited_Dumbledore)
- )
- sentence_3 = Harry_Visited_Dumbledore
- knowledge_base = sentence_1 & sentence_2 & sentence_3
- solution = satisfiable(knowledge_base, all_models=True)
- for model in solution:
-    if model[Rain]:
-        print("It rained today.")
-    else:
-        print("There is no rain today.")
+ from sympy import symbols, Not, Implies, Xor, And 
+rained = symbols('rained') 
+visited_hagrid = symbols('visited_hagrid') 
+visited_dumbledore = symbols('visited_dumbledore')  
+statement1 = Implies(Not(rained), visited_hagrid) 
+statement2 = Xor(visited_hagrid, visited_dumbledore)  
+statement3 = visited_dumbledore 
+combined_formula = And(statement1, statement2, statement3) 
+def check_combined_consistency(): 
+possible_values = [True, False] 
+consistent_scenarios = [] 
+for rained_value in possible_values:#true,false 
+for visited_hagrid_value in possible_values:
+results = { 
+rained: rained_value, 
+visited_hagrid: visited_hagrid_value,
+visited_dumbledore: True 
+} 
+eval_statement1 = statement1.subs(results)
+eval_statement2 = statement2.subs(results) 
+eval_statement3 = statement3.subs(results) 
+
+eval_combined_formula = combined_formula.subs(results)
+print(f"rained={rained_value}, visited_hagrid={visited_hagrid_value}, 
+visited_dumbledore=True") 
+print(f"  Statement 1 (¬R → H) evaluates to: {eval_statement1}") 
+print(f"  Statement 2 (H ⊕ D) evaluates to: {eval_statement2}") 
+print(f"  Statement 3 (D) evaluates to: {eval_statement3}") 
+print(f"  Combined Formula evaluates to: {eval_combined_formula}\n") 
+if eval_combined_formula: 
+consistent_scenarios.append((rained_value, visited_hagrid_value))
+return consistent_scenarios 
+
+consistent_scenarios = check_combined_consistency()#t,f 
+
+print("Consistent scenarios based on the combined formula:") 
+if consistent_scenarios:
+for scenario in consistent_scenarios: 
+rained_value, visited_hagrid_value = scenario
+print(f"rained={rained_value}, visited_hagrid={visited_hagrid_value}, 
+visited_dumbledore=True") 
+else: 
+print("No consistent scenarios found.") 
+print("\nCombined logical formula:") 
+print(combined_formula) 
 
 ==========================================================================
 
@@ -109,41 +137,40 @@ week-6
 ==============================================================================
 week-7
 
- import numpy as np
- import pandas as pd
- import matplotlib.pyplot as plt
- import pandas as pd
- # Data with 3 values
- data = {
-    'Size': [6, 10, 14],
-    'Cost': [100, 200, 300]
- }
- # Create DataFrame
- df = pd.DataFrame(data)
- # Save to CSV
- df.to_csv('pizza.csv', index=False)
- dataset=pd.read_csv('pizza.csv')
- dataset.head()
- X=dataset.iloc[:,0:-1].values
- y=dataset.iloc[:,1].values
- X
- from sklearn.model_selection import train_test_split
- X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=1/3,random_state=0)
- X_train
+  import numpy as np 
+ import pandas as pd 
+ import matplotlib.pyplot as plt 
+ #from google.colab import files 
+ #uploaded = files.upload() 
+ dataset = pd.read_csv('pizza.csv') 
+ X = dataset.iloc[:, 0:-1].values #independent variable array 
+ y = dataset.iloc[:,1].values #dependent variable vector 
+ # splitting the dataset 
+ from sklearn.model_selection import train_test_split 
+ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=1/3,random_state=0) 
+ # fitting the regression model 
  from sklearn.linear_model import LinearRegression 
-regressor = LinearRegression()
- regressor.fit(X_train,y_train)
- regressor
- regressor.predict([[30]])
- y_pred=regressor.predict(X_test)
- y_pred
- df1=pd.DataFrame({'Actual':y_test,'Prediction':y_pred})
- df1
- regressor.score(X_test,y_test)
- plt.scatter(X_train,y_train ,color='red')
- plt.plot(X_train,regressor.predict(X_train),color='black')
- plt.title("size vs cost( Training set) ")
- plt.xlabel("size")
- plt.ylabel("cost")
- plt.show()
-        
+ regressor = LinearRegression() 
+ regressor.fit(X_train,y_train) #actually produces the linear eqn for the data 
+ regressor 
+ # predicting the test set results 
+ y_pred = regressor.predict(X_test) 
+ #comparing both y_test and y_pred 
+ df1=pd.DataFrame({'Actual':y_test,'Prediction':y_pred}) 
+ df1 
+ # visualizing the results 
+ #plot for the TRAIN 
+ plt.scatter(X_train, y_train, color='red') # plotting the observation line 
+ plt.plot(X_train, regressor.predict(X_train), color='blue') # plotting the regression line 
+ plt.title("size vs cost  (Training set)") # stating the title of the graph 
+ plt.xlabel("size") # adding the name of x-axis 
+ plt.ylabel("cost") # adding the name of y-axis 
+ plt.show() # specifies end of graph 
+ #plot for the TEST 
+ plt.scatter(X_test, y_test, color='red') 
+ plt.plot(X_train, regressor.predict(X_train), color='blue') # plotting the regression line 
+ plt.title("size vs cost  (Training set)") # stating the title of the graph 
+ plt.xlabel("size") # adding the name of x-axis 
+ plt.ylabel("cost") # adding the name of y-axis 
+ plt.show() 
+ dataset.head()
